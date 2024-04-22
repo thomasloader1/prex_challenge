@@ -1,0 +1,62 @@
+version: '3'
+services:
+
+    #PHP Service
+    prex-challange-php:
+        build:
+            context: .
+            dockerfile: ./docker/php/Dockerfile
+        container_name: prex-challange-php
+        restart: unless-stopped
+        tty: true
+        environment:
+            SERVICE_NAME: prex-challange-php
+            SERVICE_TAGS: dev
+        working_dir: /var/www
+        volumes:
+            - ./:/var/www
+            - ./docker/php/php.ini:/usr/local/etc/php/php.ini
+            - ./:/root/.ssh
+        networks:
+            - prex-challenge-network
+
+    #Nginx Service
+    prex-challenge-web:
+        image: nginx:alpine
+        container_name: prex-challenge-web
+        restart: unless-stopped
+        tty: true
+        ports:
+            - 8000:80
+        volumes:
+            - ./:/var/www
+            - ./docker/nginx/conf.d/:/etc/nginx/conf.d/
+            - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+        networks:
+            - prex-challenge-network
+
+    #MySQL Service
+    prex-challenge-db:
+        build:
+            context: docker/db
+            dockerfile: Dockerfile
+        container_name: prex-challenge-db
+        restart: unless-stopped
+        tty: true
+        ports:
+            - ${DB_PORT}:3306
+        environment:
+            MYSQL_DATABASE: prex_challenge_db
+            MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+            MYSQL_RANDOM_ROOT_PASSWORD: "1"
+            SERVICE_TAGS: dev
+        command: --skip-grant-tables
+        volumes:
+            - ./docker/db/data:/var/lib/mysql/
+        networks:
+            - prex-challenge-network
+
+#Docker Networks
+networks:
+    prex-challenge-network:
+       driver: bridge
